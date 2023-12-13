@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum EventName
 {
@@ -15,20 +17,22 @@ public enum EventName
 public class GameManager : MonoBehaviour
 {
     public ButtonManager buttonManager;
+    public event Action ChackButton;
 
     private static long passBookCash = 0;
-    private static long walletCash = 100000;
+    private static long walletCash = 150000;
+    public long inputFieldCash = 0;
 
     public TMP_Text PassbookTxt;
     public TMP_Text WalletTxt;
 
-    public event Action ChackButton;
+    public TMP_Text logText;
+    public Scrollbar Scrollbar;
 
     private void Start()
     {
         buttonManager = ButtonManager.instance;
-        PassbookTxt.text = passBookCash.ToString();
-        WalletTxt.text = walletCash.ToString();
+        UpdateCashText();
 
         buttonManager.DepositButton += () => ChackButtonEvent(EventName.Deposit);
         buttonManager.WithdrawalButton += () => ChackButtonEvent(EventName.Withdrawal);
@@ -62,16 +66,50 @@ public class GameManager : MonoBehaviour
         ChackButton?.Invoke();
     }
 
+    public void InputFieldStringtoLong(string _input)
+    {
+        bool inputtolong = long.TryParse(_input,out long inputlong);
+        if(inputtolong)
+        {
+            inputFieldCash = inputlong;
+        }     
+    }
+
+    public void UpdateCashText()
+    {
+        PassbookTxt.text = $"잔액 : {passBookCash.ToString("N0")} 원";
+        WalletTxt.text = $"잔액 : {walletCash.ToString("N0")} 원";
+    }
+
     private void Deposit()
     {
         // 입금로직
-        Debug.Log("Deposit");
+        if(inputFieldCash > walletCash)
+        {
+            logText.text += $"잔액이 부족합니다.\n";
+            Scrollbar.value = 0.0f;
+            return; // 로그판에 띄우기
+        }
+        walletCash -= inputFieldCash;
+        passBookCash += inputFieldCash;
+        UpdateCashText();
+        logText.text += $"{inputFieldCash}원 입금\n";
+        Scrollbar.value = 0.0f;
     }
 
     private void Withdrawal()
     {
-        //출금로직
-        Debug.Log("Withdrawal");
+        if (inputFieldCash > passBookCash)
+        {
+            logText.text += $"잔액이 부족합니다.\n";
+            Scrollbar.value = 0.0f;
+            return; // 로그판에 띄우기
+        }
+        passBookCash -= inputFieldCash;
+        walletCash += inputFieldCash;
+        UpdateCashText();
+        logText.text += $"{inputFieldCash}원 출금\n";
+        Scrollbar.value = 0.0f;
     }
 
     private void Remittance()
